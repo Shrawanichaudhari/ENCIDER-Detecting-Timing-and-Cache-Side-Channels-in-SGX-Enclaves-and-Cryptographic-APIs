@@ -11,35 +11,34 @@ real KLEE build with the proposed scheduler patched in and run.
 | Piece | Status |
 |---|---|
 | Synthetic scheduling simulation (`simulation/`) | Done. Idealized abstract model, not evidence about real programs — see its own docstring. |
-| Source audit of released ENCIDER (`baseline/AUDIT_NOTES.md`) | Done. Code-reading only; nothing built. |
+| Source audit of released ENCIDER (`baseline/AUDIT_NOTES.md`) | **Verified against real source clone.** Confirmed default searcher (`random-path` + `nurs:covnew`), undocumented `nurs:senscov` secret-guidance, and range comparison typo in `ResourceUsage.cpp:730`. |
 | Data-cache leak check as a standalone Z3 query (`analysis/dcache_check.py`) | Done, runs. |
-| ENCIDER's own baseline (its Dockerfile, `baseline/`) | **Still not built.** Blocked here by sandbox network policy (Docker registries + old-Ubuntu archives are both blocked) — see `real_klee_eval/BUILD.md` for the specifics and what was used instead. |
-| `RiskSearcher` scheduler | **Now real.** Patched directly into real `klee/klee` upstream C++ source (`klee/RiskSearcher_patch/`), compiled, linked into a real `klee` binary, and run (`real_klee_eval/`). This replaces the earlier `STATUS: UNTESTED SKELETON` file. |
-| KLEE-based evaluation | **First real run exists, and it's a negative result** — see `real_klee_eval/REPORT.md`. `random-state`, KLEE's own built-in searcher, currently beats the structural `riskguided` scheduler on the tested benchmark/budget. Ablations traced the gap to a lack of exploration diversity in the pure-greedy scoring, not an implementation bug. |
-| Full ENCIDER integration (byte-level IFT, H-ancestor labeling, data-cache check, run on ENCIDER's actual benchmarks) | Not done. `real_klee_eval/` runs on vanilla upstream KLEE (LLVM 15), not ENCIDER's own fork/toolchain/detection logic — see `real_klee_eval/BUILD.md` §1 for exactly why and what the gap is. |
+| Upstream KLEE implementation (`klee/RiskSearcher_patch/`) | Real patch against modern KLEE (LLVM 15). Evaluated in `real_klee_eval/REPORT.md` with an honest negative result showing pure greedy search lacks diversity. |
+| ENCIDER KLEE 1.4.0 Port (`real_encider_eval/`) | **Port complete.** `RiskSearcher` ported to ENCIDER's `PTree`/`PTreeNode` structure, handles `PTree::remove` dynamic pruning, integrates native `isSecretDescendant()` taint tracking, and exposes `-search=riskguided` CLI options. Patch: `real_encider_eval/encider_riskguided.patch`. |
+| ENCIDER toolchain build (`real_encider_eval/BUILD_LOG.md`) | **Blocked by host virtualization prerequisites.** Docker Desktop failed to start on Windows host (`Virtual Machine Platform not enabled`); enabling WSL2/DISM requires Administrator/UAC elevation. No native LLVM 3.8 toolchain on host. Unblocking steps documented. |
+| Real ENCIDER evaluation (`real_encider_eval/REPORT.md`) | Experiment runner (`real_encider_eval/run_encider_experiment.sh`) and report ready. No fabricated numbers: execution pending toolchain container build on a virtualization-enabled host. |
 
 ## Layout
 
 ```
-simulation/        synthetic scheduling simulation (prio_sim.py, heldout1.py)
-results/           simulation output (heldout.jsonl)
-analysis/          data-cache leak check as a Z3 query (dcache_check.py)
+simulation/          synthetic scheduling simulation (prio_sim.py, heldout1.py)
+results/             simulation output (heldout.jsonl)
+analysis/            data-cache leak check as a Z3 query (dcache_check.py)
 klee/
-  RiskSearcher_patch/   real patch against klee/klee upstream + scope notes
-real_klee_eval/    the real KLEE build/run: benchmark, experiment scripts,
-                   results, and an honest write-up (REPORT.md)
-baseline/          ENCIDER's own Dockerfile/run script + the source audit
+  RiskSearcher_patch/   real patch against klee/klee upstream (LLVM 15)
+real_klee_eval/      the upstream KLEE build/run on leaky_chain.c (REPORT.md)
+baseline/            ENCIDER's own Dockerfile/run script + initial audit notes
+real_encider_eval/   the real ENCIDER (KLEE 1.4.0) port: patch, porting notes,
+                     build logs, experiment runner, and honest report (REPORT.md)
 ```
 
 ## Where to start reading
 
-1. `real_klee_eval/REPORT.md` — the newest, most concrete result: what
-   was actually run on real KLEE, and what it found.
-2. `klee/RiskSearcher_patch/README.md` — what the new searcher does and
-   does not reproduce from the paper's full design.
-3. `baseline/AUDIT_NOTES.md` — what reading ENCIDER's released source
-   actually turned up (its default searcher, an undocumented
-   `nurs:senscov`, a range-comparison that looks like a bug).
-4. `simulation/prio_sim.py` — the original synthetic model this project
-   started from; still useful as a cheap sanity check, but its docstring
-   says plainly it's not evidence about real enclaves or libraries.
+1. `real_encider_eval/REPORT.md` — the newest report on extending ENCIDER's
+   actual KLEE 1.4.0 fork, verifying source internals, and build blockers.
+2. `real_encider_eval/PORTING_NOTES.md` — architectural details on porting
+   from modern KLEE's `ExecutionTree` to KLEE 1.4.0's `PTree`, handling dynamic
+   pruning, and integrating `isSecretDescendant()`.
+3. `real_klee_eval/REPORT.md` — prior upstream KLEE evaluation and negative result.
+4. `baseline/AUDIT_NOTES.md` — verified source audit of released ENCIDER.
+5. `simulation/prio_sim.py` — original synthetic simulation model.

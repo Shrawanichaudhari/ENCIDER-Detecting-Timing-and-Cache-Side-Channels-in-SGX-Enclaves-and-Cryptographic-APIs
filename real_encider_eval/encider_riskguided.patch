@@ -1,0 +1,216 @@
+﻿diff --git a/klee/lib/Core/PTree.cpp b/klee/lib/Core/PTree.cpp
+index 77698bb..25509dd 100755
+--- a/klee/lib/Core/PTree.cpp
++++ b/klee/lib/Core/PTree.cpp
+@@ -94,7 +94,8 @@ PTreeNode::PTreeNode(PTreeNode *_parent,
+     left(0),
+     right(0),
+     data(_data),
+-    condition(0) {
++    condition(0),
++    closed(false) {
+ }
+ 
+ PTreeNode::~PTreeNode() {
+diff --git a/klee/lib/Core/PTree.h b/klee/lib/Core/PTree.h
+index 11d3f48..98888d1 100755
+--- a/klee/lib/Core/PTree.h
++++ b/klee/lib/Core/PTree.h
+@@ -39,6 +39,7 @@ namespace klee {
+     PTreeNode *parent, *left, *right;
+     ExecutionState *data;
+     ref<Expr> condition;
++    bool closed; // SYSREL/RiskSearcher extension: true if subtree produced >= 1 terminated path
+ 
+   private:
+     PTreeNode(PTreeNode *_parent, ExecutionState *_data);
+diff --git a/klee/lib/Core/Searcher.cpp b/klee/lib/Core/Searcher.cpp
+index 589bb09..ecdc012 100755
+--- a/klee/lib/Core/Searcher.cpp
++++ b/klee/lib/Core/Searcher.cpp
+@@ -515,3 +515,92 @@ void InterleavedSearcher::update(
+          ie = searchers.end(); it != ie; ++it)
+     (*it)->update(current, addedStates, removedStates);
+ }
++
++//===----------------------------------------------------------------------===//
++// RiskSearcher (SYSREL / Risk-Guided Scheduling Extension)
++//===----------------------------------------------------------------------===//
++
++RiskSearcher::RiskSearcher(double _wP, double _wD, double _wS, double _eta)
++  : wP(_wP), wD(_wD), wS(_wS), eta(_eta) {
++}
++
++RiskSearcher::~RiskSearcher() {
++}
++
++void RiskSearcher::markClosed(ExecutionState *es) {
++  PTreeNode *node = es->ptreeNode;
++  while (node) {
++    if (node->closed)
++      break;
++    node->closed = true;
++    node = node->parent;
++  }
++}
++
++double RiskSearcher::score(ExecutionState *es) const {
++  PTreeNode *node = es->ptreeNode;
++  if (!node)
++    return 0.0;
++  double openComparisons = 0.0;
++  unsigned depth = 0;
++  while (node && node->parent) {
++    PTreeNode *parent = node->parent;
++    PTreeNode *sibling = (parent->left == node) ? parent->right : parent->left;
++    bool siblingClosed = (!sibling) || sibling->closed;
++    if (siblingClosed && !node->closed)
++      openComparisons += 1.0;
++    node = parent;
++    ++depth;
++  }
++  double secretBonus = es->isSecretDescendant() ? wS : 0.0;
++  return wP * openComparisons + wD * static_cast<double>(depth) + secretBonus;
++}
++
++ExecutionState &RiskSearcher::selectState() {
++  assert(!states.empty() && "RiskSearcher::selectState() on empty searcher");
++  if (states.size() > 1 && theRNG.getDoubleL() < eta) {
++    return *states[theRNG.getInt32() % states.size()];
++  }
++  ExecutionState *best = states[0];
++  double bestScore = score(best);
++  for (size_t i = 1; i < states.size(); ++i) {
++    double s = score(states[i]);
++    if (s > bestScore) {
++      bestScore = s;
++      best = states[i];
++    }
++  }
++  return *best;
++}
++
++void RiskSearcher::update(ExecutionState *current,
++                          const std::vector<ExecutionState *> &addedStates,
++                          const std::vector<ExecutionState *> &removedStates) {
++  for (std::vector<ExecutionState *>::const_iterator it = addedStates.begin(),
++                                                     ie = addedStates.end();
++       it != ie; ++it) {
++    states.push_back(*it);
++  }
++
++  for (std::vector<ExecutionState *>::const_iterator it = removedStates.begin(),
++                                                     ie = removedStates.end();
++       it != ie; ++it) {
++    ExecutionState *es = *it;
++    markClosed(es);
++    std::vector<ExecutionState *>::iterator pos =
++        std::find(states.begin(), states.end(), es);
++    if (pos != states.end()) {
++      std::swap(*pos, states.back());
++      states.pop_back();
++    }
++  }
++}
++
++bool RiskSearcher::empty() {
++  return states.empty();
++}
++
++void RiskSearcher::printName(llvm::raw_ostream &os) {
++  os << "RiskSearcher (open-comparison + secret-guided scheduler for ENCIDER)\n";
++}
++
+diff --git a/klee/lib/Core/Searcher.h b/klee/lib/Core/Searcher.h
+index 32c6190..7610007 100755
+--- a/klee/lib/Core/Searcher.h
++++ b/klee/lib/Core/Searcher.h
+@@ -78,8 +78,9 @@ namespace klee {
+       NURS_CPICnt,
+       NURS_QC,
+       /* SYSREL extension */
+-      NURS_SensitiveCov
++      NURS_SensitiveCov,
+       /* SYSREL extension */
++      RiskGuided
+     };
+   };
+ 
+@@ -284,6 +285,28 @@ namespace klee {
+     }
+   };
+ 
++  class RiskSearcher : public Searcher {
++    std::vector<ExecutionState*> states;
++    double wP;  // weight per open ancestor comparison this state could close
++    double wD;  // weight per tree depth (secondary tie-breaker)
++    double wS;  // weight bonus for secret-dependent branch (isSecretDescendant)
++    double eta; // probability of uniform-random pick instead of argmax (diversity)
++
++    double score(ExecutionState *es) const;
++    void markClosed(ExecutionState *es);
++
++  public:
++    RiskSearcher(double _wP = 2.0, double _wD = 0.1, double _wS = 5.0, double _eta = 0.1);
++    ~RiskSearcher();
++
++    ExecutionState &selectState();
++    void update(ExecutionState *current,
++                const std::vector<ExecutionState *> &addedStates,
++                const std::vector<ExecutionState *> &removedStates);
++    bool empty();
++    void printName(llvm::raw_ostream &os);
++  };
++
+ }
+ 
+ #endif
+diff --git a/klee/lib/Core/UserSearcher.cpp b/klee/lib/Core/UserSearcher.cpp
+index edd76c9..c3cdc8e 100755
+--- a/klee/lib/Core/UserSearcher.cpp
++++ b/klee/lib/Core/UserSearcher.cpp
+@@ -35,7 +35,8 @@ namespace {
+ 			clEnumValN(Searcher::NURS_ICnt, "nurs:icnt", "use NURS with Instr-Count"),
+ 			clEnumValN(Searcher::NURS_CPICnt, "nurs:cpicnt", "use NURS with CallPath-Instr-Count"),
+ 			clEnumValN(Searcher::NURS_QC, "nurs:qc", "use NURS with Query-Cost"),
+-			clEnumValN(Searcher::NURS_SensitiveCov, "nurs:senscov", "use NURS with Secret Dependent Coverage")
++			clEnumValN(Searcher::NURS_SensitiveCov, "nurs:senscov", "use NURS with Secret Dependent Coverage"),
++			clEnumValN(Searcher::RiskGuided, "riskguided", "use Risk-Guided Open-Comparison Path Scheduling")
+ 			KLEE_LLVM_CL_VAL_END));
+ 
+   cl::opt<bool>
+@@ -57,6 +58,26 @@ namespace {
+             cl::desc("Amount of time to batch when using --use-batching-search"),
+             cl::init(5.0));
+ 
++  cl::opt<double>
++  RiskWP("risk-wp",
++         cl::desc("RiskSearcher (-search=riskguided): weight per open ancestor comparison this state could close (default=2.0)"),
++         cl::init(2.0));
++
++  cl::opt<double>
++  RiskWD("risk-wd",
++         cl::desc("RiskSearcher (-search=riskguided): weight per tree depth, secondary tie-breaker (default=0.1)"),
++         cl::init(0.1));
++
++  cl::opt<double>
++  RiskWS("risk-ws",
++         cl::desc("RiskSearcher (-search=riskguided): weight bonus for secret-dependent branches (default=5.0)"),
++         cl::init(5.0));
++
++  cl::opt<double>
++  RiskEta("risk-eta",
++          cl::desc("RiskSearcher (-search=riskguided): probability of uniform-random pick for exploration diversity (default=0.1)"),
++          cl::init(0.1));
++
+ }
+ 
+ 
+@@ -96,6 +117,7 @@ Searcher *getNewSearcher(Searcher::CoreSearchType type, Executor &executor) {
+   case Searcher::NURS_CPICnt: searcher = new WeightedRandomSearcher(WeightedRandomSearcher::CPInstCount); break;
+   case Searcher::NURS_QC: searcher = new WeightedRandomSearcher(WeightedRandomSearcher::QueryCost); break;
+   case Searcher::NURS_SensitiveCov: searcher = new WeightedRandomSearcher(WeightedRandomSearcher::SensitiveCov); break;
++  case Searcher::RiskGuided: searcher = new RiskSearcher(RiskWP, RiskWD, RiskWS, RiskEta); break;
+   }
+ 
+   return searcher;
