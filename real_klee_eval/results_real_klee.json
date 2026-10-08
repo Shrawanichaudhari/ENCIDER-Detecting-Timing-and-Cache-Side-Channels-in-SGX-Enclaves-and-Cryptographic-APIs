@@ -1,0 +1,472 @@
+{
+  "budget_instructions": 20000,
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+  ],
+  "results": {
+    "dfs": {
+      "runs": [
+        {
+          "seed": 1,
+          "completed": 16,
+          "partial": null,
+          "tests": 294,
+          "num_paths": 294,
+          "closed_nodes": 293,
+          "total_internal_nodes": 1973,
+          "recall": 0.1485048150025342
+        }
+      ]
+    },
+    "random-state": {
+      "runs": [
+        {
+          "seed": 1,
+          "completed": 412,
+          "partial": null,
+          "tests": 412,
+          "num_paths": 412,
+          "closed_nodes": 411,
+          "total_internal_nodes": 1921,
+          "recall": 0.21395106715252474
+        },
+        {
+          "seed": 2,
+          "completed": 408,
+          "partial": null,
+          "tests": 408,
+          "num_paths": 408,
+          "closed_nodes": 407,
+          "total_internal_nodes": 1930,
+          "recall": 0.21088082901554403
+        },
+        {
+          "seed": 3,
+          "completed": 406,
+          "partial": null,
+          "tests": 406,
+          "num_paths": 406,
+          "closed_nodes": 405,
+          "total_internal_nodes": 1924,
+          "recall": 0.2104989604989605
+        },
+        {
+          "seed": 4,
+          "completed": 414,
+          "partial": null,
+          "tests": 414,
+          "num_paths": 414,
+          "closed_nodes": 413,
+          "total_internal_nodes": 1919,
+          "recall": 0.21521625846795206
+        },
+        {
+          "seed": 5,
+          "completed": 408,
+          "partial": null,
+          "tests": 408,
+          "num_paths": 408,
+          "closed_nodes": 407,
+          "total_internal_nodes": 1916,
+          "recall": 0.21242171189979123
+        },
+        {
+          "seed": 6,
+          "completed": 401,
+          "partial": null,
+          "tests": 401,
+          "num_paths": 401,
+          "closed_nodes": 400,
+          "total_internal_nodes": 1922,
+          "recall": 0.2081165452653486
+        },
+        {
+          "seed": 7,
+          "completed": 409,
+          "partial": null,
+          "tests": 409,
+          "num_paths": 409,
+          "closed_nodes": 408,
+          "total_internal_nodes": 1925,
+          "recall": 0.21194805194805194
+        },
+        {
+          "seed": 8,
+          "completed": 405,
+          "partial": null,
+          "tests": 405,
+          "num_paths": 405,
+          "closed_nodes": 404,
+          "total_internal_nodes": 1916,
+          "recall": 0.21085594989561587
+        },
+        {
+          "seed": 9,
+          "completed": 408,
+          "partial": null,
+          "tests": 408,
+          "num_paths": 408,
+          "closed_nodes": 407,
+          "total_internal_nodes": 1917,
+          "recall": 0.21231090245174752
+        },
+        {
+          "seed": 10,
+          "completed": 407,
+          "partial": null,
+          "tests": 407,
+          "num_paths": 407,
+          "closed_nodes": 406,
+          "total_internal_nodes": 1929,
+          "recall": 0.21047174701918092
+        },
+        {
+          "seed": 11,
+          "completed": 410,
+          "partial": null,
+          "tests": 410,
+          "num_paths": 410,
+          "closed_nodes": 409,
+          "total_internal_nodes": 1942,
+          "recall": 0.2106076210092688
+        },
+        {
+          "seed": 12,
+          "completed": 409,
+          "partial": null,
+          "tests": 409,
+          "num_paths": 409,
+          "closed_nodes": 408,
+          "total_internal_nodes": 1924,
+          "recall": 0.21205821205821207
+        },
+        {
+          "seed": 13,
+          "completed": 409,
+          "partial": null,
+          "tests": 409,
+          "num_paths": 409,
+          "closed_nodes": 408,
+          "total_internal_nodes": 1928,
+          "recall": 0.21161825726141079
+        },
+        {
+          "seed": 14,
+          "completed": 409,
+          "partial": null,
+          "tests": 409,
+          "num_paths": 409,
+          "closed_nodes": 408,
+          "total_internal_nodes": 1926,
+          "recall": 0.2118380062305296
+        },
+        {
+          "seed": 15,
+          "completed": 403,
+          "partial": null,
+          "tests": 403,
+          "num_paths": 403,
+          "closed_nodes": 402,
+          "total_internal_nodes": 1924,
+          "recall": 0.20893970893970895
+        },
+        {
+          "seed": 16,
+          "completed": 413,
+          "partial": null,
+          "tests": 413,
+          "num_paths": 413,
+          "closed_nodes": 412,
+          "total_internal_nodes": 1926,
+          "recall": 0.21391484942886813
+        },
+        {
+          "seed": 17,
+          "completed": 405,
+          "partial": null,
+          "tests": 405,
+          "num_paths": 405,
+          "closed_nodes": 404,
+          "total_internal_nodes": 1921,
+          "recall": 0.21030713170223841
+        },
+        {
+          "seed": 18,
+          "completed": 411,
+          "partial": null,
+          "tests": 411,
+          "num_paths": 411,
+          "closed_nodes": 410,
+          "total_internal_nodes": 1922,
+          "recall": 0.2133194588969823
+        },
+        {
+          "seed": 19,
+          "completed": 409,
+          "partial": null,
+          "tests": 409,
+          "num_paths": 409,
+          "closed_nodes": 408,
+          "total_internal_nodes": 1919,
+          "recall": 0.2126107347576863
+        },
+        {
+          "seed": 20,
+          "completed": 407,
+          "partial": null,
+          "tests": 407,
+          "num_paths": 407,
+          "closed_nodes": 406,
+          "total_internal_nodes": 1918,
+          "recall": 0.2116788321167883
+        }
+      ]
+    },
+    "riskguided": {
+      "runs": [
+        {
+          "seed": 1,
+          "completed": 128,
+          "partial": null,
+          "tests": 313,
+          "num_paths": 313,
+          "closed_nodes": 312,
+          "total_internal_nodes": 1966,
+          "recall": 0.15869786368260427
+        },
+        {
+          "seed": 2,
+          "completed": 138,
+          "partial": null,
+          "tests": 313,
+          "num_paths": 313,
+          "closed_nodes": 312,
+          "total_internal_nodes": 1961,
+          "recall": 0.15910249872514023
+        },
+        {
+          "seed": 3,
+          "completed": 139,
+          "partial": null,
+          "tests": 313,
+          "num_paths": 313,
+          "closed_nodes": 312,
+          "total_internal_nodes": 1972,
+          "recall": 0.15821501014198783
+        },
+        {
+          "seed": 4,
+          "completed": 143,
+          "partial": null,
+          "tests": 315,
+          "num_paths": 315,
+          "closed_nodes": 314,
+          "total_internal_nodes": 1968,
+          "recall": 0.15955284552845528
+        },
+        {
+          "seed": 5,
+          "completed": 147,
+          "partial": null,
+          "tests": 315,
+          "num_paths": 315,
+          "closed_nodes": 314,
+          "total_internal_nodes": 1965,
+          "recall": 0.1597964376590331
+        },
+        {
+          "seed": 6,
+          "completed": 157,
+          "partial": null,
+          "tests": 316,
+          "num_paths": 316,
+          "closed_nodes": 315,
+          "total_internal_nodes": 1969,
+          "recall": 0.15997968511934993
+        },
+        {
+          "seed": 7,
+          "completed": 146,
+          "partial": null,
+          "tests": 316,
+          "num_paths": 316,
+          "closed_nodes": 315,
+          "total_internal_nodes": 1967,
+          "recall": 0.1601423487544484
+        },
+        {
+          "seed": 8,
+          "completed": 144,
+          "partial": null,
+          "tests": 317,
+          "num_paths": 317,
+          "closed_nodes": 316,
+          "total_internal_nodes": 1964,
+          "recall": 0.16089613034623218
+        },
+        {
+          "seed": 9,
+          "completed": 150,
+          "partial": null,
+          "tests": 316,
+          "num_paths": 316,
+          "closed_nodes": 315,
+          "total_internal_nodes": 1965,
+          "recall": 0.16030534351145037
+        },
+        {
+          "seed": 10,
+          "completed": 133,
+          "partial": null,
+          "tests": 312,
+          "num_paths": 312,
+          "closed_nodes": 311,
+          "total_internal_nodes": 1965,
+          "recall": 0.15826972010178117
+        },
+        {
+          "seed": 11,
+          "completed": 143,
+          "partial": null,
+          "tests": 314,
+          "num_paths": 314,
+          "closed_nodes": 313,
+          "total_internal_nodes": 1969,
+          "recall": 0.1589639410868461
+        },
+        {
+          "seed": 12,
+          "completed": 160,
+          "partial": null,
+          "tests": 319,
+          "num_paths": 319,
+          "closed_nodes": 318,
+          "total_internal_nodes": 1966,
+          "recall": 0.1617497456765005
+        },
+        {
+          "seed": 13,
+          "completed": 147,
+          "partial": null,
+          "tests": 313,
+          "num_paths": 313,
+          "closed_nodes": 312,
+          "total_internal_nodes": 1963,
+          "recall": 0.15894039735099338
+        },
+        {
+          "seed": 14,
+          "completed": 146,
+          "partial": null,
+          "tests": 315,
+          "num_paths": 315,
+          "closed_nodes": 314,
+          "total_internal_nodes": 1965,
+          "recall": 0.1597964376590331
+        },
+        {
+          "seed": 15,
+          "completed": 140,
+          "partial": null,
+          "tests": 314,
+          "num_paths": 314,
+          "closed_nodes": 313,
+          "total_internal_nodes": 1969,
+          "recall": 0.1589639410868461
+        },
+        {
+          "seed": 16,
+          "completed": 150,
+          "partial": null,
+          "tests": 316,
+          "num_paths": 316,
+          "closed_nodes": 315,
+          "total_internal_nodes": 1968,
+          "recall": 0.1600609756097561
+        },
+        {
+          "seed": 17,
+          "completed": 152,
+          "partial": null,
+          "tests": 316,
+          "num_paths": 316,
+          "closed_nodes": 315,
+          "total_internal_nodes": 1965,
+          "recall": 0.16030534351145037
+        },
+        {
+          "seed": 18,
+          "completed": 141,
+          "partial": null,
+          "tests": 314,
+          "num_paths": 314,
+          "closed_nodes": 313,
+          "total_internal_nodes": 1967,
+          "recall": 0.15912557193695984
+        },
+        {
+          "seed": 19,
+          "completed": 146,
+          "partial": null,
+          "tests": 317,
+          "num_paths": 317,
+          "closed_nodes": 316,
+          "total_internal_nodes": 1966,
+          "recall": 0.1607324516785351
+        },
+        {
+          "seed": 20,
+          "completed": 151,
+          "partial": null,
+          "tests": 314,
+          "num_paths": 314,
+          "closed_nodes": 313,
+          "total_internal_nodes": 1967,
+          "recall": 0.15912557193695984
+        }
+      ]
+    }
+  },
+  "summary": {
+    "dfs": {
+      "n": 1,
+      "mean_closed_nodes": 293,
+      "stdev_closed_nodes": 0.0,
+      "mean_recall": 0.1485048150025342,
+      "mean_num_paths": 294
+    },
+    "random-state": {
+      "n": 20,
+      "mean_closed_nodes": 407.15,
+      "stdev_closed_nodes": 3.1834274809261465,
+      "mean_recall": 0.21167824180082057,
+      "mean_num_paths": 408.15
+    },
+    "riskguided": {
+      "n": 20,
+      "mean_closed_nodes": 313.9,
+      "stdev_closed_nodes": 1.7441631985447619,
+      "mean_recall": 0.15963611305521816,
+      "mean_num_paths": 314.9
+    }
+  }
+}

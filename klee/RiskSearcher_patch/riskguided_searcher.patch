@@ -1,0 +1,222 @@
+diff --git a/lib/Core/Searcher.cpp b/lib/Core/Searcher.cpp
+index e94511e..ae608dd 100644
+--- a/lib/Core/Searcher.cpp
++++ b/lib/Core/Searcher.cpp
+@@ -261,6 +261,90 @@ void WeightedRandomSearcher::printName(llvm::raw_ostream &os) {
+ #define IS_OUR_NODE_VALID(n)                                                   \
+   (((n).getPointer() != nullptr) && (((n).getInt() & idBitMask) != 0))
+ 
++// ----------------------------------------------------------------------
++// RiskSearcher: real, running, reduced-scope prototype of the paper's
++// open-comparison-guided scheduler. See Searcher.h for the honesty note
++// on what is and isn't reproduced here relative to the full RiskSelect
++// design (no secret-labeling / static indicator g(.) -- those need
++// ENCIDER's own IFT, which this standalone KLEE checkout doesn't have).
++// ----------------------------------------------------------------------
++RiskSearcher::RiskSearcher(RNG &rng, double wP, double wD, double eta)
++    : theRNG(rng), wP(wP), wD(wD), eta(eta) {}
++
++void RiskSearcher::markClosed(ExecutionState *es) {
++  ExecutionTreeNode *node = es->executionTreeNode;
++  while (node) {
++    if (!closedSubtree.insert(node).second)
++      break; // already marked on the way up from an earlier termination
++    node = node->parent;
++  }
++}
++
++double RiskSearcher::score(ExecutionState *es) const {
++  ExecutionTreeNode *node = es->executionTreeNode;
++  if (!node)
++    return 0.0;
++  double openComparisons = 0.0;
++  unsigned depth = 0;
++  while (node && node->parent) {
++    ExecutionTreeNode *parent = node->parent;
++    ExecutionTreeNode *sibling = (parent->left.getPointer() == node)
++                                     ? parent->right.getPointer()
++                                     : parent->left.getPointer();
++    // Open comparison: the sibling side of this branch already has a
++    // terminated path, but this state's own side (so far) does not --
++    // i.e. finishing this path would be the one that closes the pair.
++    if (sibling && closedSubtree.count(sibling) && !closedSubtree.count(node))
++      openComparisons += 1.0;
++    node = parent;
++    ++depth;
++  }
++  return wP * openComparisons + wD * static_cast<double>(depth);
++}
++
++ExecutionState &RiskSearcher::selectState() {
++  assert(!states.empty() && "RiskSearcher::selectState() on empty searcher");
++  if (states.size() > 1 && theRNG.getDoubleL() < eta) {
++    // Random-path-style fallback share (paper Eq. 8): avoid starving
++    // low-score states and keep the searcher from getting stuck if the
++    // structural signal is uninformative for a given program.
++    return *states[theRNG.getInt32() % states.size()];
++  }
++  ExecutionState *best = states[0];
++  double bestScore = score(best);
++  for (size_t i = 1; i < states.size(); ++i) {
++    double s = score(states[i]);
++    if (s > bestScore) {
++      bestScore = s;
++      best = states[i];
++    }
++  }
++  return *best;
++}
++
++void RiskSearcher::update(ExecutionState *current,
++                          const std::vector<ExecutionState *> &addedStates,
++                          const std::vector<ExecutionState *> &removedStates) {
++  for (auto es : addedStates)
++    states.push_back(es);
++
++  for (auto es : removedStates) {
++    markClosed(es); // record: this branch's side just terminated
++    auto it = std::find(states.begin(), states.end(), es);
++    if (it != states.end()) {
++      std::swap(*it, states.back());
++      states.pop_back();
++    }
++  }
++}
++
++bool RiskSearcher::empty() { return states.empty(); }
++
++void RiskSearcher::printName(llvm::raw_ostream &os) {
++  os << "RiskSearcher (real, reduced-scope prototype of paper's "
++        "open-comparison scheduler)\n";
++}
++
+ RandomPathSearcher::RandomPathSearcher(InMemoryExecutionTree *executionTree, RNG &rng)
+     : executionTree{executionTree}, theRNG{rng},
+       idBitMask{static_cast<uint8_t>(executionTree ? executionTree->getNextId() : 0)} {
+diff --git a/lib/Core/Searcher.h b/lib/Core/Searcher.h
+index 36efe67..560e37e 100644
+--- a/lib/Core/Searcher.h
++++ b/lib/Core/Searcher.h
+@@ -21,6 +21,7 @@
+ #include <map>
+ #include <queue>
+ #include <set>
++#include <unordered_set>
+ #include <vector>
+ 
+ namespace llvm {
+@@ -71,7 +72,8 @@ namespace klee {
+       NURS_RP,
+       NURS_ICnt,
+       NURS_CPICnt,
+-      NURS_QC
++      NURS_QC,
++      RiskGuided
+     };
+   };
+ 
+@@ -157,6 +159,45 @@ namespace klee {
+     void printName(llvm::raw_ostream &os) override;
+   };
+ 
++  /// RiskSearcher implements a scoped, real (non-simulated) prototype of the
++  /// open-comparison-guided scheduler from the accompanying paper
++  /// ("Risk-Guided Path Prioritization..."). It walks each candidate state's
++  /// ExecutionTree ancestor chain and scores it higher when an ancestor
++  /// branch's sibling subtree has already produced a terminated ("closed")
++  /// path -- i.e. the state sits on the still-open side of a comparison that
++  /// completing would close. This is a structural simplification of the
++  /// paper's full H-ancestor/secret-aware design: it treats every branch
++  /// site as a candidate "comparison" rather than only secret-dependent
++  /// ones, because that labeling needs ENCIDER's own byte-level information
++  /// flow tracking, which this standalone KLEE checkout does not have.
++  /// Honesty note: this searcher is new, real, and runs end to end on real
++  /// KLEE, but it is a reduced-scope reimplementation, not the paper's full
++  /// RiskSelect with static indicator g(.) -- see klee/RISKSEARCHER_NOTES.md
++  /// in the companion research-code repo for exactly what is and isn't here.
++  class RiskSearcher final : public Searcher {
++    std::vector<ExecutionState *> states;
++    RNG &theRNG;
++    // Nodes (by address) whose subtree has produced >=1 terminated path.
++    std::unordered_set<ExecutionTreeNode *> closedSubtree;
++    double wP;  // weight for each open comparison this state could close
++    double wD;  // weight for depth (secondary tie-breaker, like the paper's wD)
++    double eta; // epsilon: probability of a uniform-random pick instead (like
++                // the paper's random-path mixing share, Eq. 8)
++
++    double score(ExecutionState *es) const;
++    void markClosed(ExecutionState *es);
++
++  public:
++    explicit RiskSearcher(RNG &rng, double wP = 2.0, double wD = 0.1,
++                          double eta = 0.1);
++    ExecutionState &selectState() override;
++    void update(ExecutionState *current,
++                const std::vector<ExecutionState *> &addedStates,
++                const std::vector<ExecutionState *> &removedStates) override;
++    bool empty() override;
++    void printName(llvm::raw_ostream &os) override;
++  };
++
+   /// RandomPathSearcher performs a random walk of the ExecutionTree to select a
+   /// state. ExecutionTree is a global data structure, however, a searcher can
+   /// sometimes only select from a subset of all states (depending on the update
+diff --git a/lib/Core/UserSearcher.cpp b/lib/Core/UserSearcher.cpp
+index 7e0fd31..69718d0 100644
+--- a/lib/Core/UserSearcher.cpp
++++ b/lib/Core/UserSearcher.cpp
+@@ -47,7 +47,10 @@ cl::list<Searcher::CoreSearchType> CoreSearch(
+                    "use NURS with Instr-Count"),
+         clEnumValN(Searcher::NURS_CPICnt, "nurs:cpicnt",
+                    "use NURS with CallPath-Instr-Count"),
+-        clEnumValN(Searcher::NURS_QC, "nurs:qc", "use NURS with Query-Cost")),
++        clEnumValN(Searcher::NURS_QC, "nurs:qc", "use NURS with Query-Cost"),
++        clEnumValN(Searcher::RiskGuided, "riskguided",
++                   "real (non-simulated) reduced-scope prototype of the "
++                   "paper's open-comparison-guided scheduler")),
+     cl::cat(SearchCat));
+ 
+ cl::opt<bool> UseIterativeDeepeningTimeSearch(
+@@ -79,6 +82,24 @@ cl::opt<std::string> BatchTime(
+     cl::init("5s"),
+     cl::cat(SearchCat));
+ 
++cl::opt<double> RiskWP(
++    "risk-wp",
++    cl::desc("RiskSearcher (-search=riskguided): weight per open ancestor "
++             "comparison this state could close (default=2.0)"),
++    cl::init(2.0), cl::cat(SearchCat));
++
++cl::opt<double> RiskWD(
++    "risk-wd",
++    cl::desc("RiskSearcher (-search=riskguided): weight per tree depth, "
++             "secondary tie-breaker (default=0.1)"),
++    cl::init(0.1), cl::cat(SearchCat));
++
++cl::opt<double> RiskEta(
++    "risk-eta",
++    cl::desc("RiskSearcher (-search=riskguided): probability of a uniform "
++             "random pick instead of argmax, for diversity (default=0.1)"),
++    cl::init(0.1), cl::cat(SearchCat));
++
+ void initializeSearchOptions() {
+   // default values
+   if (CoreSearch.empty()) {
+@@ -101,7 +122,8 @@ bool userSearcherRequiresMD2U() {
+ }
+ 
+ bool userSearcherRequiresInMemoryExecutionTree() {
+-  return std::find(CoreSearch.begin(), CoreSearch.end(), Searcher::RandomPath) != CoreSearch.end();
++  return std::find(CoreSearch.begin(), CoreSearch.end(), Searcher::RandomPath) != CoreSearch.end() ||
++         std::find(CoreSearch.begin(), CoreSearch.end(), Searcher::RiskGuided) != CoreSearch.end();
+ }
+ 
+ } // namespace klee
+@@ -121,6 +143,7 @@ Searcher *getNewSearcher(Searcher::CoreSearchType type, RNG &rng,
+     case Searcher::NURS_ICnt: searcher = new WeightedRandomSearcher(WeightedRandomSearcher::InstCount, rng); break;
+     case Searcher::NURS_CPICnt: searcher = new WeightedRandomSearcher(WeightedRandomSearcher::CPInstCount, rng); break;
+     case Searcher::NURS_QC: searcher = new WeightedRandomSearcher(WeightedRandomSearcher::QueryCost, rng); break;
++    case Searcher::RiskGuided: searcher = new RiskSearcher(rng, RiskWP, RiskWD, RiskEta); break;
+   }
+ 
+   return searcher;

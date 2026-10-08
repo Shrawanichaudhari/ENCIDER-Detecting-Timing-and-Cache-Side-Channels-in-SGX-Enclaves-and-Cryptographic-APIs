@@ -1,0 +1,22 @@
+{
+  "riskguided_eta0.3": {
+    "n": 20,
+    "mean_closed_nodes": 327,
+    "stdev_closed_nodes": 4.205259864302774
+  },
+  "riskguided_eta0.5": {
+    "n": 20,
+    "mean_closed_nodes": 352.55,
+    "stdev_closed_nodes": 4.661996409942396
+  },
+  "riskguided_wd0": {
+    "n": 20,
+    "mean_closed_nodes": 321.45,
+    "stdev_closed_nodes": 1.637552731171861
+  },
+  "riskguided_wd0_eta0.3": {
+    "n": 20,
+    "mean_closed_nodes": 362.15,
+    "stdev_closed_nodes": 4.4871160589309245
+  }
+}
